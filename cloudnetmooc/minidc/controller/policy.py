@@ -49,6 +49,7 @@ Useful Topology class functions/properties:
                                 specified dpid
 '''
 
+
 class AdaptivePolicy(object):
     def __init__(self, topo, bwstats, logger):
         self.topo = topo
@@ -80,7 +81,8 @@ class AdaptivePolicy(object):
         # to find the least utilized switch.
 
         # [REPLACE WITH YOUR CODE]
-        return self.utilization.keys()[0]
+        #         return self.utilization.keys()[0]
+        return min(self.utilization, key=self.utilization.get)
 
     def redistribute(self):
         # we're installing flows by destination, so sort by received
@@ -115,10 +117,10 @@ class AdaptivePolicy(object):
             for h in topo.hosts.values():
                 outport = topo.ports[core.name][h.switch]
                 routingTable[core.dpid].append({
-                    'eth_dst' : h.eth,
-                    'output' : [outport],
-                    'priority' : 2,
-                    'type' : 'dst'
+                    'eth_dst': h.eth,
+                    'output': [outport],
+                    'priority': 2,
+                    'type': 'dst'
                 })
 
         for edge in topo.edgeSwitches.values():
@@ -133,13 +135,14 @@ class AdaptivePolicy(object):
                     outport = topo.ports[edge.name][core]
 
                 routingTable[edge.dpid].append({
-                    'eth_dst' : h.eth,
-                    'output' : [outport],
-                    'priority' : 2,
-                    'type' : 'dst'
+                    'eth_dst': h.eth,
+                    'output': [outport],
+                    'priority': 2,
+                    'type': 'dst'
                 })
 
         return flood.add_arpflood(routingTable, topo)
+
 
 class StaticPolicy(object):
     def __init__(self, topo):
@@ -155,10 +158,10 @@ class StaticPolicy(object):
             for h in topo.hosts.values():
                 outport = topo.ports[core.name][h.switch]
                 routingTable[core.dpid].append({
-                    'eth_dst' : h.eth,
-                    'output' : [outport],
-                    'priority' : 2,
-                    'type' : 'dst'
+                    'eth_dst': h.eth,
+                    'output': [outport],
+                    'priority': 2,
+                    'type': 'dst'
                 })
 
         # ASSIGNMENT 3:
@@ -173,8 +176,27 @@ class StaticPolicy(object):
         #   (Hint: to find a the VLAN, use topo.getVlanCore(vlanId))
 
         # [ADD YOUR CODE HERE]
+        for edge in topo.edgeSwitches.values():
+            routingTable[edge.dpid] = []
+            for h in topo.hosts.values():
+                # h is connected to edge
+                if h.name in edge.neighbors:
+                    outport = topo.ports[edge.name][h.name]
+                else:  # choose right port to core
+                    vlanId = h.vlans[0]
+                    core = topo.getVlanCore(vlanId)
+                    outport = topo.ports[edge.name][core]
+
+                # install routing policy when @outport is determined
+                routingTable[edge.dpid].append({
+                    'eth_dst': h.eth,
+                    'output': [outport],
+                    'priority': 2,
+                    'type': 'dst'
+                })
 
         return flood.add_arpflood(routingTable, topo)
+
 
 class DefaultPolicy(object):
     def __init__(self, topo):
@@ -193,10 +215,10 @@ class DefaultPolicy(object):
         for h in topo.hosts.values():
             outport = topo.ports[core][h.switch]
             routingTable[coreDpid].append({
-                'eth_dst' : h.eth,
-                'output' : [outport],
-                'priority' : 2,
-                'type' : 'dst'
+                'eth_dst': h.eth,
+                'output': [outport],
+                'priority': 2,
+                'type': 'dst'
             })
 
         # create rules for packets from edge -> core (upward)
@@ -210,13 +232,14 @@ class DefaultPolicy(object):
                     outport = topo.ports[edge.name][core]
 
                 routingTable[edge.dpid].append({
-                    'eth_dst' : h.eth,
-                    'output' : [outport],
-                    'priority' : 2,
-                    'type' : 'dst'
+                    'eth_dst': h.eth,
+                    'output': [outport],
+                    'priority': 2,
+                    'type': 'dst'
                 })
 
         return flood.add_arpflood(routingTable, topo)
+
 
 if __name__ == "__main__":
     class MockLogger(object):
@@ -241,6 +264,7 @@ if __name__ == "__main__":
         def exception(self, msg, *args, **kwargs):
             pass
 
+
     class MockBandwidthStats(object):
         def __init__(self, topo):
             self.topo = topo
@@ -253,8 +277,10 @@ if __name__ == "__main__":
     cfgfile = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                             "..", "config.txt"))
     if not os.path.isfile(cfgfile):
-        print "Cannot run test without file", cfgfile
-        print "To create file, run mdc (eg, sudo ./mdc --vid)"
+        print
+        "Cannot run test without file", cfgfile
+        print
+        "To create file, run mdc (eg, sudo ./mdc --vid)"
         sys.exit(1)
 
     topo = Topology(cfgfile)
@@ -263,6 +289,9 @@ if __name__ == "__main__":
     policy.utilization['s102'] = 50
     policy.utilization['s103'] = 200
 
-    print "Testing with values:", str(policy.utilization)
-    print "Expected min: s102"
-    print "Your code returns min:", str(policy.minUtilization())
+    print
+    "Testing with values:", str(policy.utilization)
+    print
+    "Expected min: s102"
+    print
+    "Your code returns min:", str(policy.minUtilization())

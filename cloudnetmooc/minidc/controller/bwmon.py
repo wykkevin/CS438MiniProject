@@ -78,10 +78,11 @@ Useful OFPortStats class functions/properties:
      OFPortStats.tx_bytes - the number of transmitted bytes from port_no
 '''
 
+
 class BandwidthMonitor(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
     _CONTEXTS = {
-        'dpset' : dpset.DPSet,
+        'dpset': dpset.DPSet,
     }
 
     def __init__(self, *args, **kwargs):
@@ -135,13 +136,22 @@ class BandwidthMonitor(app_manager.RyuApp):
         self.bwstats.addDroppedPktStat(name, totalDropped)
 
         # ASSIGNMENT 2:
+
         # If the switch reporting the statistic is an edge switch, and the
         # port connects to a host, log the statistic to bwstats, using
         # self.bwstats.addHostBwStat(hostname, transmitted bytes, received bytes)
+
         # (Hint: you can look up the switch or host connected to a port using
         #  self.topo.ports[switch name][port number])
 
         # [ ADD YOUR CODE HERE ]
+        if name in self.topo.edgeSwitches.keys():
+            for stat in body:
+                port_no = stat.port_no
+                if port_no in self.topo.ports[name].keys():
+                    host_name = self.topo.ports[name][port_no]
+                    if self.topo.ports[name][port_no] in self.topo.edgeSwitches[name].neighbors:
+                        self.bwstats.addHostBwStat(host_name, stat.tx_bytes, stat.rx_bytes)
 
         # periodically print tenant bandwidth usage
         self.statsReplied += 1
