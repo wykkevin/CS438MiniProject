@@ -8,7 +8,7 @@ from ryu.controller.handler import set_ev_cls
 from ryu.controller.handler import CONFIG_DISPATCHER
 from ryu.controller import ofp_event
 
-from policy import DefaultPolicy, StaticPolicy, AdaptivePolicy
+from policy import DefaultPolicy, StaticPolicy, AdaptivePolicy, VlanAwarePolicy, LoadBalancedPolicy
 from bwmon import BandwidthMonitor
 
 class Controller(BandwidthMonitor):
@@ -17,11 +17,13 @@ class Controller(BandwidthMonitor):
         self.rpcStart()
         self.policies = { "default" : DefaultPolicy(self.topo),
                           "static" : StaticPolicy(self.topo),
+			  "vlanAware" : VlanAwarePolicy(self.topo),
+			  "loadBalanced" : LoadBalancedPolicy(self.topo),
                           "adaptive" : AdaptivePolicy(self.topo,
                                                       self.bwstats,
                                                       self.logger)
                       }
-        self.curpolicy = "default"
+        self.curpolicy = "loadBalanced"
 
     def rpcStart(self):
         self.server = SimpleXMLRPCServer(("localhost", 8000), logRequests=False)

@@ -150,18 +150,6 @@ class StaticPolicy(object):
                     'type' : 'dst'
                 })
 
-        # ASSIGNMENT 3:
-        # Rules to Install:
-        #   On the Edge Switches: output the appropriate port if the destination
-        #   is a neighboring host (that is, don't send it up to a core switch).
-        #   Otherwise, send to the core switch for that destination's vlan
-        #   ("upward").  If a host has multiple VLANs, you can use the first
-        #   in the list of VLANs.
-        #   (Hint: you can look up the port of a neighboring host using
-        #           topo.ports[edge switch name][host name]
-        #   (Hint: to find a the VLAN, use topo.getVlanCore(vlanId))
-
-        # create rules for packets from edge -> core (upward)
         for edge in topo.edgeSwitches.values():
             routingTable[edge.dpid] = []
             for h in topo.hosts.values():
@@ -216,6 +204,48 @@ class VlanAwarePolicy(object):
                 })
 
         return flood.add_arpflood(routingTable, topo)
+
+class LoadBalancedPolicy(object):
+    def __init__(self, topo):
+        self.routingTable = self.build(topo)
+
+    def build(self, topo):
+        routingTable = {}
+
+        # Shuffle the list of core switches to add randomness to load balancing
+        core_switches = list(topo.coreSwitches.values())
+        random.shuffle(core_switches)
+
+        for core in core_switches:
+            routingTable[core.dpid] = []
+            for h in topo.hosts.values():
+                outport = topo.ports[core.name][h.switch]
+                routingTable[core.dpid].append({
+                    'eth_dst': h.eth,
+                    'output': [outport],
+                    'priority': 2,
+                    'type': 'dst'
+                })
+
+        for edge in topo.edgeSwitches.values():
+            routingTable[edge.dpid] = []
+            for h in topo.hosts.values():
+                if h.name in edge.neighbors:
+                    outport = topo.ports[edge.name][h.name]
+                else:
+                    chosen_core = random.choice(core_switches)
+                    outport = topo.ports[edge.name][chosen_core.name]
+
+                routingTable[edge.dpid].append({
+                    'eth_dst': h.eth,
+                    'output': [outport],
+                    'priority': 2,
+                    'type': 'dst'
+                })
+
+        return flood.add_arpflood(routingTable, topo)
+
+
 
 class DefaultPolicy(object):
     def __init__(self, topo):
