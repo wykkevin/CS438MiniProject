@@ -5,6 +5,7 @@ from topo import Topology
 import flood
 import os
 import sys
+import random
 
 '''
 Useful CoreSwitch class functions/properties:
@@ -176,6 +177,42 @@ class StaticPolicy(object):
                     'output' : [outport],
                     'priority' : 2,
                     'type' : 'dst'
+                })
+
+        return flood.add_arpflood(routingTable, topo)
+
+class VlanAwarePolicy(object):
+    def __init__(self, topo):
+        self.routingTable = self.build(topo)
+
+    def build(self, topo):
+        routingTable = {}
+
+        for core in topo.coreSwitches.values():
+            routingTable[core.dpid] = []
+            for h in topo.hosts.values():
+                if topo.getVlanCore(h.vlans[0]) == core.name:
+                    outport = topo.ports[core.name][h.switch]
+                    routingTable[core.dpid].append({
+                        'eth_dst': h.eth,
+                        'output': [outport],
+                        'priority': 2,
+                        'type': 'dst'
+                    })
+
+        for edge in topo.edgeSwitches.values():
+            routingTable[edge.dpid] = []
+            for h in topo.hosts.values():
+                if h.name in edge.neighbors:
+                    outport = topo.ports[edge.name][h.name]
+                else:
+                    outport = topo.ports[edge.name][topo.getVlanCore(h.vlans[0])]
+
+                routingTable[edge.dpid].append({
+                    'eth_dst': h.eth,
+                    'output': [outport],
+                    'priority': 2,
+                    'type': 'dst'
                 })
 
         return flood.add_arpflood(routingTable, topo)
