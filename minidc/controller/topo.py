@@ -1,5 +1,15 @@
 #!/usr/bin/env python
 
+import itertools
+import pprint
+import re
+
+def tryint(s):
+    return int(s) if s.isdigit() else s
+
+def natural_sort(string):
+    return [ tryint(c) for c in re.split('(\d+)', string) ]
+
 class Host(object):
     def __init__(self, name, ip, eth, switch, vlans):
         self.name = name
@@ -18,7 +28,6 @@ class Host(object):
                                                   self.switch,
                                                   self.vlans)
 
-
 class CoreSwitch(object):
     def __init__(self, name, dpid, vlans):
         self.name = name
@@ -32,7 +41,6 @@ class CoreSwitch(object):
         return "{0}: ({1}, {2})".format(self.name,
                                         self.dpid,
                                         self.vlans)
-
 
 class EdgeSwitch(object):
     def __init__(self, name, dpid, neighbors):
@@ -48,35 +56,15 @@ class EdgeSwitch(object):
                                         self.dpid,
                                         self.neighbors)
 
-
 class Topology(object):
     def __init__(self, config):
-        self.hosts = {
-            'h3': Host('h3', '10.0.0.3', '4e:00:55:1c:ad:b2', 's101', [1]),
-            'h6': Host('h6', '10.0.0.6', '8a:74:a0:1c:38:7e', 's101', [1]),
-            'h1': Host('h1', '10.0.0.1', '2e:b4:75:8f:34:78', 's102', [0]),
-            'h4': Host('h4', '10.0.0.4', '86:d2:65:55:90:8a', 's102', [1]),
-            'h2': Host('h2', '10.0.0.2', '52:1b:41:bd:e1:4e', 's103', [0]),
-            'h5': Host('h5', '10.0.0.5', 'fe:f4:f8:9e:cc:75', 's103', [1])
-        }
-        self.vlans = {1: ['h3', 'h6', 'h4', 'h5'], 0: ['h1', 'h2']}
-        self.edgeSwitches = {
-            's101': EdgeSwitch('s101', 101, ['h3', 'h6']),
-            's102': EdgeSwitch('s102', 102, ['h1', 'h4']),
-            's103': EdgeSwitch('s103', 103, ['h2', 'h5'])
-        }
-        self.coreSwitches = {
-            's104': CoreSwitch('s104', 104, [0]),
-            's105': CoreSwitch('s105', 105, [1])
-        }
-        self.ports = {
-            's104': {1: 's101', 's101': 1, 2: 's102', 's102': 2, 3: 's103', 's103': 3},
-            's105': {1: 's101', 's101': 1, 2: 's102', 's102': 2, 3: 's103', 's103': 3},
-            's101': {1: 's104', 's104': 1, 2: 's105', 's105': 2, 3: 'h3', 'h3': 3, 4: 'h6', 'h6': 4},
-            's102': {1: 's104', 's104': 1, 2: 's105', 's105': 2, 3: 'h1', 'h1': 3, 4: 'h4', 'h4': 4},
-            's103': {1: 's104', 's104': 1, 2: 's105', 's105': 2, 3: 'h2', 'h2': 3, 4: 'h5', 'h5': 4}
-        }
-        self.switches = ['s101', 's102', 's103', 's104', 's105']
+        self.hosts = {}
+        self.vlans = {}
+        self.switches = []
+        self.edgeSwitches = {}
+        self.coreSwitches = {}
+        self.ports = {}
+        self.parse(config)
 
         print("controller topoooooo")
         print(self.hosts)
@@ -97,3 +85,84 @@ class Topology(object):
             if dpid == sw.dpid:
                 return sw.name
         return None
+
+    # XXX: assumes ports are ordered alphabetically by switch, host name
+    def parse(self, fname):
+        with open(fname) as f:
+            contents = self.splitSections(f.readlines(), '*')
+
+        self.coreSwitches = self.parseCores(contents[0])
+        self.edgeSwitches = self.parseEdges(contents[1])
+        self.switches = self.coreSwitches.keys() + self.edgeSwitches.keys()
+        self.hosts = self.parseHosts(contents[1])
+        self.ports = self.setPorts()
+
+        for host in self.hosts.values():
+            for v in host.vlans:
+                if v not in self.vlans.keys():
+                    self.vlans[v] = []
+                self.vlans[v].append(host.name)
+
+    def setPorts(self):
+        ports = {}
+        for s in self.coreSwitches.keys():
+            ports[s] = {}
+            i = 1
+            for edge in sorted(self.edgeSwitches.keys(),
+                               key=natural_sort):
+                ports[s][i] = edge
+                ports[s][edge] = i
+                i += 1
+
+        for s in self.edgeSwitches.keys():
+            ports[s] = {}
+            i = 1
+            for core in sorted(self.coreSwitches.keys(),
+                               key=natural_sort):
+                ports[s][i] = core
+                ports[s][core] = i
+                i += 1
+
+            for host in sorted(self.edgeSwitches[s].neighbors,
+                               key=natural_sort):
+                ports[s][i] = host
+                ports[s][host] = i
+                i += 1
+
+        return ports
+
+    def parseEdges(self, cfg):
+        s = {}
+        for line in cfg:
+            fields = line.split(' ')
+            name, dpid = fields[0], int(fields[1])
+            neighbors = [n.split(',')[0] for n in fields[2:]]
+            s[name] = EdgeSwitch(name, dpid, neighbors)
+        return s
+
+    def parseCores(self, cfg):
+        s = {}
+        for line in cfg:
+            fields = line.split(' ')
+            name, dpid = fields[0], int(fields[1])
+            vlan = [] if len(fields) < 3 \
+                   else [int(v) for v in fields[2].split(':')]
+            s[name] = CoreSwitch(name, dpid, vlan)
+        return s
+
+    def parseHosts(self, cfg):
+        h = {}
+        for line in cfg:
+            fields = line.split(' ')
+            switch = fields[0]
+            for host in fields[2:]:
+                hfields = host.split(',')
+                name, ip, eth = hfields[0], hfields[1], hfields[2]
+                vlans = [int(v) for v in hfields[3].split(':')]
+                h[name] = Host(name, ip, eth, switch, vlans)
+        return h
+
+    def splitSections(self, contents, separator):
+        contents = [j.strip() for j in contents]
+        return [list(j) for i,j in
+                itertools.groupby(contents, lambda x:x in separator) if not i]

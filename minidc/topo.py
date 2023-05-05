@@ -7,29 +7,31 @@ FattreeTopology: creates a simple fattree topology with N edge switches
 
 from mininet.topo import Topo
 
+
 class FattreeTopology(Topo):
     def build(self, numEdgeSwitches=2, bw=20, hostsPerEdge=2):
         linkopts = dict(bw=bw, delay='1ms', max_queue_size=500, loss=0, use_htb=True)
-        numHosts = numEdgeSwitches * hostsPerEdge
-        numCoreSwitches = numEdgeSwitches - 1
-
-        hostIds = range(1, numHosts+1)
-        firstSwitch = max(101, numHosts+1)
-        edgeSwitchIds = range(firstSwitch, numEdgeSwitches + firstSwitch)
-        coreSwitchIds= range(numEdgeSwitches + firstSwitch,
-                            numEdgeSwitches + firstSwitch + numCoreSwitches)
+        numHosts = 8
+        numCoreSwitches = 3
+        numEdgeSwitches = 4
+        #
+        # hostIds = range(1, numHosts+1)
+        # firstSwitch = max(101, numHosts+1)
+        # edgeSwitchIds = range(firstSwitch, numEdgeSwitches + firstSwitch)
+        # coreSwitchIds= range(numEdgeSwitches + firstSwitch,
+        #                     numEdgeSwitches + firstSwitch + numCoreSwitches)
 
         self._coreSwitches = []
         self._edgeSwitches = []
         self._hosts = []
         self._links = {}
 
-        for s in coreSwitchIds:
-            switch = self.addSwitch('s%s' % s, protocols='OpenFlow13')
+        for s in range(numCoreSwitches):
+            switch = self.addSwitch('s' + str(s + numEdgeSwitches), protocols='OpenFlow13')
             self._coreSwitches.append(switch)
             self._links[switch] = []
-        for s in edgeSwitchIds:
-            switch = self.addSwitch('s%s' % s, protocols='OpenFlow13')
+        for s in range(numEdgeSwitches):
+            switch = self.addSwitch('s' + str(s), protocols='OpenFlow13')
             self._edgeSwitches.append(switch)
             self._links[switch] = []
 
@@ -39,11 +41,11 @@ class FattreeTopology(Topo):
                 self._links[s1].append(s2)
                 self._links[s2].append(s1)
 
-        for i, h in enumerate(hostIds):
-            host = self.addHost('h%s' % h)
+        for i in range(numHosts):
+            host = self.addHost('h' + str(i))
             self._hosts.append(host)
-            switchNum = firstSwitch + (h % numEdgeSwitches)
-            switch = "s%s" % switchNum
+            switchNum = (i % numEdgeSwitches)
+            switch = "s" + str(switchNum)
             self.addLink(switch, host, **linkopts)
             self._links[host] = [switch]
             self._links[switch].append(host)
