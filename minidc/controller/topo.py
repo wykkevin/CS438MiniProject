@@ -65,6 +65,8 @@ class Topology(object):
         self.coreSwitches = {}
         self.ports = {}
         self.parse(config)
+        print "vlans"
+        print self.vlans
 
     def getVlanCore(self, vlan):
         for core in self.coreSwitches.values():
