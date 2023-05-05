@@ -44,15 +44,13 @@ class FattreeTopology(Topo):
         for i in range(numHosts):
             host = self.addHost('h' + str(i))
             self._hosts.append(host)
-            switchNum = (i % numEdgeSwitches)
+            switchNum = i % numEdgeSwitches
             switch = "s" + str(switchNum)
             self.addLink(switch, host, **linkopts)
             self._links[host] = [switch]
             self._links[switch].append(host)
 
         print("FattreeTopology")
-        print(linkopts)
-        print(numEdgeSwitches)
         print(self._links)
         print(self._hosts)
         print(self._coreSwitches)
