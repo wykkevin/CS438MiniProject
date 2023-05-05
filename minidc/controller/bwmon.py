@@ -142,6 +142,8 @@ class BandwidthMonitor(app_manager.RyuApp):
         #  self.topo.ports[switch name][port number])
 
         # [ ADD YOUR CODE HERE ]
+        print("name")
+        print(name)
 	for stat in body:
 	    if stat.port_no in self.topo.ports[name].keys():	
 	        device = self.topo.ports[name][stat.port_no]
