@@ -49,6 +49,8 @@ class FattreeTopology(Topo):
             self._links[switch].append(host)
 
         print("FattreeTopology")
+        print(linkopts)
+        print(numEdgeSwitches)
         print(self._links)
         print(self._hosts)
         print(self._coreSwitches)
