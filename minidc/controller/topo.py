@@ -78,6 +78,8 @@ class Topology(object):
         }
         self.switches = ['s101', 's102', 's103', 's104', 's105']
 
+        print("controller topoooooo")
+
     def getVlanCore(self, vlan):
         for core in self.coreSwitches.values():
             if vlan in core.vlans:
