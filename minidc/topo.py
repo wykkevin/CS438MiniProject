@@ -27,11 +27,11 @@ class FattreeTopology(Topo):
         self._links = {}
 
         for s in range(numCoreSwitches):
-            switch = self.addSwitch('s' + str(s + numEdgeSwitches), protocols='OpenFlow13')
+            switch = self.addSwitch('s' + str(1 + s + numEdgeSwitches), protocols='OpenFlow13')
             self._coreSwitches.append(switch)
             self._links[switch] = []
         for s in range(numEdgeSwitches):
-            switch = self.addSwitch('s' + str(s), protocols='OpenFlow13')
+            switch = self.addSwitch('s' + str(1 + s), protocols='OpenFlow13')
             self._edgeSwitches.append(switch)
             self._links[switch] = []
 
@@ -42,9 +42,9 @@ class FattreeTopology(Topo):
                 self._links[s2].append(s1)
 
         for i in range(numHosts):
-            host = self.addHost('h' + str(i))
+            host = self.addHost('h' + str(1 + i))
             self._hosts.append(host)
-            switchNum = i % numEdgeSwitches
+            switchNum = 1 + (i % numEdgeSwitches)
             switch = "s" + str(switchNum)
             self.addLink(switch, host, **linkopts)
             self._links[host] = [switch]

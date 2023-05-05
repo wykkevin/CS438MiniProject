@@ -115,7 +115,7 @@ def run(remoteCtrl=False):
     tenants.append(MemcacheProfile(numNodes=3, trials=-1))
     tenants.append(IperfProfile(numNodes=5, bw=1.2, maxFlows=12))
 
-    topo = FattreeTopology(numEdgeSwitches=3, bw=5)
+    topo = FattreeTopology(bw=5)
 
     if remoteCtrl:
         c = RemoteController('rmController','127.0.0.1')
