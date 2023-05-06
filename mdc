@@ -55,7 +55,7 @@ if __name__ == "__main__":
     bw = 5
 
     if sys.argv[1] == "--vid":
-        tenants.append(VidstreamProfile(numNodes=2))
+        tenants.append(VidstreamProfile(numNodes=4))
         tenants.append(IperfProfile(numNodes=4, bw=1.0))
     elif sys.argv[1] == "--rep":
         tenants.append(RepMemcacheProfile(numSrvs=3, numClients=1, trials=-1, activeReps=3))
