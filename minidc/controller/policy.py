@@ -139,8 +139,10 @@ class StaticPolicy(object):
 
         # core switches: for a given host destination, send packet
         # to the host's edge switch ("downward")
+	coreSw = []
         for core in topo.coreSwitches.values():
             routingTable[core.dpid] = []
+	    coreSw.append(core.name)
             for h in topo.hosts.values():
                 outport = topo.ports[core.name][h.switch]
                 routingTable[core.dpid].append({
@@ -150,6 +152,11 @@ class StaticPolicy(object):
                     'type' : 'dst'
                 })
 
+	# pre-assigned
+	edgeToCore = dict()
+	for edge in topo.edgeSwitches.values():
+	    edgeToCore[edge.name] = random.choice(coreSw)
+
         for edge in topo.edgeSwitches.values():
             routingTable[edge.dpid] = []
             for h in topo.hosts.values():
@@ -157,7 +164,7 @@ class StaticPolicy(object):
                 if h.name in edge.neighbors:
                     outport = topo.ports[edge.name][h.name]
                 else:
-                    outport = topo.ports[edge.name][topo.getVlanCore(h.vlans[0])]
+                    outport = topo.ports[edge.name][edgeToCore[edge.name]]
                     print (edge.name, h.name, topo.getVlanCore(h.vlans[0]),outport)
 
                 routingTable[edge.dpid].append({
@@ -247,7 +254,7 @@ class LoadBalancedPolicy(object):
 
 
 
-class DefaultPolicy(object):
+class SingleCorePolicy(object):
     def __init__(self, topo):
         self.routingTable = self.build(topo)
 
