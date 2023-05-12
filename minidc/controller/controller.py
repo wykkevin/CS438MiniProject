@@ -23,7 +23,7 @@ class Controller(BandwidthMonitor):
                                                       self.bwstats,
                                                       self.logger)
                       }
-        self.curpolicy = "static"
+        self.curpolicy = "singleCore"
 
     def rpcStart(self):
         self.server = SimpleXMLRPCServer(("localhost", 8000), logRequests=False)
@@ -130,11 +130,15 @@ class Controller(BandwidthMonitor):
             return
 
         for flow in rt[dpid]:
-            match = self.makeMatch(flow, parser)
-            actions = []
-            for outport in flow['output']:
-                if outport == 'flood':
-                    actions.append(parser.OFPActionOutput(ofproto.OFPP_FLOOD))
-                else:
-                    actions.append(parser.OFPActionOutput(outport))
-            self.add_flow(datapath, flow['priority'], match, actions)
+	    print('flow ', flow)
+            if flow['priority'] == -1:
+                print('drop the flow')
+	    else:
+            	match = self.makeMatch(flow, parser)
+            	actions = []
+            	for outport in flow['output']:
+                    if outport == 'flood':
+                        actions.append(parser.OFPActionOutput(ofproto.OFPP_FLOOD))
+                    else:
+                        actions.append(parser.OFPActionOutput(outport))
+                self.add_flow(datapath, flow['priority'], match, actions)

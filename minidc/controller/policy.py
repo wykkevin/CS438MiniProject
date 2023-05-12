@@ -59,16 +59,6 @@ class AdaptivePolicy(object):
         return self.build(self.topo)
 
     def minUtilization(self):
-        # ASSIGNMENT 4:
-        # This function should return the core switch that
-        # is least utilized.  We will use this to greedily
-        # assign hosts to core switches based on the amount
-        # of traffic they are receiving and balance load
-        # on the core switches.
-
-        # Use the dictionary self.utilization
-        # (key = switch name, value = utilization in bytes)
-        # to find the least utilized switch.
         return min(self.utilization, key=self.utilization.get)
 
     def redistribute(self):
@@ -270,12 +260,22 @@ class SingleCorePolicy(object):
         # create rules for packets from core -> edge (downward)
         for h in topo.hosts.values():
             outport = topo.ports[core][h.switch]
-            routingTable[coreDpid].append({
-                'eth_dst' : h.eth,
-                'output' : [outport],
-                'priority' : 2,
-                'type' : 'dst'
-            })
+	    if h.name.endswith("1") == True or h.name.endswith("2") == True:
+		print(h.name)
+		routingTable[coreDpid].append({
+		    'eth_dst' : h.eth,
+                    'output' : [outport],
+                    'priority' : 2,
+                    'type' : 'dst'
+                })
+	    else:
+            	routingTable[coreDpid].append({
+                    'eth_dst' : h.eth,
+                    'output' : [outport],
+                    'priority' : -1,
+                    'type' : 'dst',
+		    #'action': 'drop'
+            	})
 
         # create rules for packets from edge -> core (upward)
         for edge in topo.edgeSwitches.values():
@@ -286,13 +286,22 @@ class SingleCorePolicy(object):
                     outport = topo.ports[edge.name][h.name]
                 else:
                     outport = topo.ports[edge.name][core]
-
-                routingTable[edge.dpid].append({
-                    'eth_dst' : h.eth,
-                    'output' : [outport],
-                    'priority' : 2,
-                    'type' : 'dst'
-                })
+                if h.name.endswith("1") == True or h.name.endswith("2") == True:
+                    print(h.name)
+		    routingTable[coreDpid].append({
+                        'eth_dst' : h.eth,
+                        'output' : [outport],
+                        'priority' : 2,
+                        'type' : 'dst'
+                    })
+                else:
+                    routingTable[coreDpid].append({
+                        'eth_dst' : h.eth,
+                        'output' : [outport],
+                        'priority' : -1,
+                        'type' : 'dst',
+                        #'action': 'drop'
+                    })
 
         return flood.add_arpflood(routingTable, topo)
 
